@@ -122,6 +122,7 @@ namespace Simulation {
 
   public class Blob {
     private Guid id;
+    // TODO make all these private
     public BlobProps props;
     public RadialPosition position;
     public BlobState state;
@@ -130,6 +131,7 @@ namespace Simulation {
       id = Guid.NewGuid();
       state = new SearchingState();
       this.props = props;
+      this.position = this.props.home;
     }
 
     public Guid GetId() {

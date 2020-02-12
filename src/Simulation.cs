@@ -6,7 +6,9 @@ namespace Simulation {
     private HashSet<Blob> blobs;
     private HashSet<FoodSite> food;
     private FoodSiteMediatorStore mediatorStore;
-    public Board() {
+    public Board(List<Blob> blobs, List<FoodSite> food) {
+      this.blobs = new HashSet<Blob>(blobs);
+      this.food = new HashSet<FoodSite>(food);
       this.mediatorStore = new FoodSiteMediatorStore();
     }
 

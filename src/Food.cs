@@ -9,6 +9,7 @@ namespace Simulation {
 
   public class FoodSite {
     public Guid id;
+    // TODO: make private
     public RadialPosition position;
     public FoodState state;
     public FoodSite() {

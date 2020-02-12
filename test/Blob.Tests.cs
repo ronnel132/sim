@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System;
+using System.Collections.Generic; 
 using Simulation;
 
 namespace Simulation.Tests 
@@ -30,5 +31,18 @@ namespace Simulation.Tests
     }
 
     // TODO: Test the blob states for correct behavior
+    [Test]
+    public void SearchingState() {
+      SearchingState ss = new SearchingState();
+      this.blobProps.step = 0.25;
+      this.blobProps.sensor = new ProximitySensor(0.25);
+      Blob blob = new Blob(this.blobProps);
+      List<Blob> blobs = new List<Blob>() { blob };
+      FoodSite fs = new FoodSite();
+      fs.position = new RadialPosition(0.5, Math.PI/2);
+      List<FoodSite> food = new List<FoodSite>() { fs };
+      Board board = new Board(blobs, food);
+      ss.ProcessNext(blob, board);
+    }
   }
 }

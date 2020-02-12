@@ -5,6 +5,16 @@ namespace Simulation {
     public double theta;
     public double radius;
 
+    public RadialPosition() {
+      this.theta = 0;
+      this.radius = 0;
+    }
+
+    public RadialPosition(double radius, double theta) {
+      this.radius = radius;
+      this.theta = theta;
+    }
+
     public double Distance(RadialPosition rp) {
       double x_1 = rp.radius * Math.Cos(rp.theta); 
       double y_1 = rp.radius * Math.Sin(rp.theta);
@@ -17,7 +27,7 @@ namespace Simulation {
 
     private void SetNewCoordinates(double x_new, double y_new) {
       double radius = Math.Sqrt(Math.Pow(x_new, 2) + Math.Pow(y_new, 2));
-      double theta = Math.Atan(y_new / x_new);
+      double theta = Math.Atan2(y_new, x_new);
       if (this.radius > 1) {
         // Hop to the other side
         this.radius = 1 - (radius % 1);
@@ -35,11 +45,14 @@ namespace Simulation {
       double x_2 = rp.radius * Math.Cos(rp.theta); 
       double y_2 = rp.radius * Math.Sin(rp.theta);
 
-      double theta = Math.Atan((x_2 - x_1) / (y_2 - y_1));
-      double x_new = x_1 + Math.Cos(theta) * stepSize;
-      double y_new = y_1 + Math.Sin(theta) * stepSize;
+      // Calculate the normalized subtraction vector
+      double delta_x = x_2 - x_1;
+      double delta_y = y_2 - y_1;
+      double magnitude = Math.Sqrt(Math.Pow(delta_x, 2) + Math.Pow(delta_y, 2));
+      double scale = stepSize / magnitude;
+      Console.WriteLine(String.Format("{0}, {1}", delta_x, delta_y));
 
-      this.SetNewCoordinates(x_new, y_new);
+      this.SetNewCoordinates(x_1 + delta_x * scale, y_1 + delta_y * scale);
     }
 
     public void RandomStep(double stepSize) {

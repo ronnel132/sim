@@ -1,5 +1,5 @@
 ﻿using System;
-using NUnit.Framework;
+//using NUnit.Framework;
 
 namespace sim
 {
@@ -15,6 +15,7 @@ namespace sim
         }
     }
 
+/*
     [TestFixture]
     class SampleTest {
       [TestCase(1, 2, 3)]
@@ -23,4 +24,5 @@ namespace sim
         Assert.AreEqual(Program.add(x, y), z);
       }
     }
+    */
 }

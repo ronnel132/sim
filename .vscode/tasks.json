@@ -7,8 +7,18 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/sim.csproj",
-                "/property:GenerateFullPaths=true",
+                "${workspaceFolder}/src/src.csproj",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "test",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/test/test.csproj",
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
@@ -19,7 +29,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/sim.csproj",
+                "${workspaceFolder}/src/src.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -32,7 +42,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/sim.csproj",
+                "${workspaceFolder}/src/src.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

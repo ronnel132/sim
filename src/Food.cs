@@ -44,7 +44,7 @@ namespace Simulation {
 
     public void Visit(Blob b) {
       if (this.blobs.Contains(b)) {
-        throw new InvalidOperationException(String.Format("Attempting to add blob id {0} to mediator", b.id));
+        throw new InvalidOperationException(String.Format("Attempting to add blob id {0} to mediator", b.GetId()));
       }
 
       this.blobs.Add(b);

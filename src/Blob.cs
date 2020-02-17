@@ -2,21 +2,21 @@ using System;
 using System.Collections.Generic; 
 
 namespace Simulation {
-  public struct BlobProps {
+  internal struct BlobProps {
     public bool isGreedy;
     public RadialPosition home; 
     public IBlobSensor sensor;
     public double step;
   }
 
-  public interface BlobState {
+  internal interface BlobState {
     void ProcessNext(Blob blob, Board board);
   }
 
   /*
   Searches for food in a random walk. Goes to the first food that's available, even if another blob is there.
    */
-  public class SearchingState : BlobState {
+  internal class SearchingState : BlobState {
     private FoodSite selectedFood = null;
 
     private void ValidateExistingSelection(Blob blob, Board board) {
@@ -64,17 +64,17 @@ namespace Simulation {
         // Random walk
         // TODO: Explore more intelligent search strategies
         blob.position.RandomStep(stepSize);
-      } else if (blob.position.Distance(this.selectedFood.position) <= stepSize) {
+      } else if (blob.position.Distance(this.selectedFood.GetPosition()) <= stepSize) {
         board.VisitFoodSite(this.selectedFood, blob);
         blob.state = new AtFoodSiteState(this.selectedFood);
-        blob.position = this.selectedFood.position; 
+        blob.position = this.selectedFood.GetPosition(); 
       } else {
-        blob.position.StepTo(this.selectedFood.position, stepSize);
+        blob.position.StepTo(this.selectedFood.GetPosition(), stepSize);
       }
     }
   }
 
-  public class AtFoodSiteState : BlobState {
+  internal class AtFoodSiteState : BlobState {
     public FoodSite foodSite;
 
     public AtFoodSiteState(FoodSite foodSite) {
@@ -85,13 +85,13 @@ namespace Simulation {
     }
   }
 
-  public enum Satiety {
+  internal enum Satiety {
     None,
     Half,
     Full,
   }
 
-  public class HomewardState : BlobState {
+  internal class HomewardState : BlobState {
     private Satiety satiety;
 
     public HomewardState(Satiety satiety) {
@@ -109,7 +109,7 @@ namespace Simulation {
     }
   }
 
-  public class HomeState : BlobState {
+  internal class HomeState : BlobState {
     private Satiety satiety;
 
     public HomeState(Satiety satiety) {
@@ -120,7 +120,7 @@ namespace Simulation {
     }
   }
 
-  public class Blob {
+  internal class Blob {
     private Guid id;
     // TODO make all these private
     public BlobProps props;
@@ -150,7 +150,7 @@ namespace Simulation {
       return this.id.GetHashCode();
     }
 
-    public override Boolean Equals(object? obj) {
+    public override Boolean Equals(object obj) {
       if ((obj == null) || ! this.GetType().Equals(obj.GetType())) {
          return false;
       }

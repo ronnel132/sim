@@ -2,16 +2,15 @@ using System;
 using System.Collections.Generic; 
 
 namespace Simulation {
-  public enum FoodState {
+  internal enum FoodState {
     Available,
     Eaten,
   }
 
-  public class FoodSite {
-    public Guid id;
-    // TODO: make private
-    public RadialPosition position;
-    public FoodState state;
+  internal class FoodSite {
+    private Guid id;
+    private RadialPosition position;
+    private FoodState state;
     public FoodSite() {
       this.id = Guid.NewGuid();
       this.state = FoodState.Available;
@@ -25,90 +24,111 @@ namespace Simulation {
       return this.id.GetHashCode();
     }
 
-    public override Boolean Equals(object? obj) {
+    public override Boolean Equals(object obj) {
       if ((obj == null) || ! this.GetType().Equals(obj.GetType())) {
          return false;
       }
       FoodSite food = (FoodSite) obj;
       return this.id == food.id;
     }
+
+    public RadialPosition GetPosition() {
+      return this.position;
+    }
+
+    public void SetPosition(RadialPosition position) {
+      this.position = position;
+    }
+
+    public FoodState GetState() {
+      return this.state;
+    }
+
+    public void SetState(FoodState state) {
+      this.state = state;
+    }
   }
 
-  public class FoodSiteMediator {
-    private int countTime = 0;
-    private FoodSite foodSite;
-    private List<Blob> blobs;
-    
-    public FoodSiteMediator(FoodSite fs) {
-      this.foodSite = fs;
+  internal class FoodSiteMediatorStore {
+    private Dictionary<FoodSite, FoodSiteMediator> mediatorMap;
+
+    public FoodSiteMediatorStore() {
+      this.mediatorMap = new Dictionary<FoodSite, FoodSiteMediator>();
     }
 
-    public void Visit(Blob b) {
-      if (this.blobs.Contains(b)) {
-        throw new InvalidOperationException(String.Format("Attempting to add blob id {0} to mediator", b.GetId()));
+    private class FoodSiteMediator {
+      private int countTime = 0;
+      private FoodSite foodSite;
+      private List<Blob> blobs;
+      
+      public FoodSiteMediator(FoodSite fs) {
+        this.foodSite = fs;
+        this.blobs = new List<Blob>();
       }
 
-      this.blobs.Add(b);
-    }
-
-    public Boolean FoodSiteAvailable() {
-      return this.blobs.Count <= 1 && !this.foodSite.IsEaten();
-    }
-
-    public void ProcessNext() {
-      this.countTime++;
-
-      if (this.countTime >= Constants.FOOD_LOCKUP_PERIOD) {
-        if (this.blobs.Count == 1) {
-          this.blobs[0].SendHome(Satiety.Full);
-        } else if (this.blobs.Count == 2) {
-          Boolean blob1Greedy = this.blobs[0].props.isGreedy;
-          Boolean blob2Greedy = this.blobs[2].props.isGreedy;
-          // TODO: Abstract this algorithm into a strategy to keep implementation away from Mediator
-          if (!blob1Greedy && !blob2Greedy) {
-            // They share
-            this.blobs[0].SendHome(Satiety.Half);
-            this.blobs[1].SendHome(Satiety.Half);
-          } else if (blob1Greedy && !blob2Greedy) {
-            this.blobs[0].SendHome(Satiety.Full);
-            this.blobs[1].SendHome(Satiety.None);
-          } else if (!blob1Greedy && blob2Greedy) {
-            this.blobs[0].SendHome(Satiety.None);
-            this.blobs[1].SendHome(Satiety.Full);
-          } else {
-            // blob1Greedy && blob2Greedy
-            this.blobs[0].SendHome(Satiety.None);
-            this.blobs[1].SendHome(Satiety.None);
-          }
-        } else {
-          throw new InvalidOperationException(String.Format("Blob count exceeds {0}. Blob count: {1}",
-            Constants.MAX_PER_FOODSITE, this.blobs.Count));
+      public void Visit(Blob b) {
+        if (this.blobs.Contains(b)) {
+          throw new InvalidOperationException(String.Format("Attempting to add blob id {0} to mediator", b.GetId()));
         }
-      }
-      this.foodSite.state = FoodState.Eaten;
-    }
-  }
 
-  public class FoodSiteMediatorStore {
-    private Dictionary<Guid, FoodSiteMediator> mediatorMap;
+        this.blobs.Add(b);
+      }
+
+      public Boolean FoodSiteAvailable() {
+        return this.blobs.Count <= 1 && !this.foodSite.IsEaten();
+      }
+
+      public void ProcessNext() {
+        this.countTime++;
+
+        if (this.countTime >= Constants.FOOD_LOCKUP_PERIOD) {
+          if (this.blobs.Count == 1) {
+            this.blobs[0].SendHome(Satiety.Full);
+          } else if (this.blobs.Count == 2) {
+            Boolean blob1Greedy = this.blobs[0].props.isGreedy;
+            Boolean blob2Greedy = this.blobs[2].props.isGreedy;
+            // TODO: Abstract this algorithm into a strategy to keep implementation away from Mediator
+            if (!blob1Greedy && !blob2Greedy) {
+              // They share
+              this.blobs[0].SendHome(Satiety.Half);
+              this.blobs[1].SendHome(Satiety.Half);
+            } else if (blob1Greedy && !blob2Greedy) {
+              this.blobs[0].SendHome(Satiety.Full);
+              this.blobs[1].SendHome(Satiety.None);
+            } else if (!blob1Greedy && blob2Greedy) {
+              this.blobs[0].SendHome(Satiety.None);
+              this.blobs[1].SendHome(Satiety.Full);
+            } else {
+              // blob1Greedy && blob2Greedy
+              this.blobs[0].SendHome(Satiety.None);
+              this.blobs[1].SendHome(Satiety.None);
+            }
+          } else {
+            throw new InvalidOperationException(String.Format("Blob count exceeds {0}. Blob count: {1}",
+              Constants.MAX_PER_FOODSITE, this.blobs.Count));
+          }
+        }
+        this.foodSite.SetState(FoodState.Eaten);
+      }
+    }
 
     public void VisitFoodSite(FoodSite foodSite, Blob b) {
-      if (!this.mediatorMap.ContainsKey(foodSite.id)) {
-        this.mediatorMap.Add(foodSite.id, new FoodSiteMediator(foodSite));
+      if (!this.mediatorMap.ContainsKey(foodSite)) {
+        this.mediatorMap.Add(foodSite, new FoodSiteMediator(foodSite));
       }
-      this.mediatorMap[foodSite.id].Visit(b);
+      this.mediatorMap[foodSite].Visit(b);
     }
 
     public Boolean FoodSiteAvailable(FoodSite foodSite) {
-      if (!this.mediatorMap.ContainsKey(foodSite.id)) {
+      if (!this.mediatorMap.ContainsKey(foodSite)) {
         return false;
       }
-      return this.mediatorMap[foodSite.id].FoodSiteAvailable();
+      return this.mediatorMap[foodSite].FoodSiteAvailable();
     }
 
     public void ProcessNext() {
-      foreach (Guid foodSiteId in this.mediatorMap.Keys) {
-        this.mediatorMap[foodSiteId].ProcessNext();
+      foreach (FoodSite foodSite in this.mediatorMap.Keys) {
+        this.mediatorMap[foodSite].ProcessNext();
       }
     }
   }

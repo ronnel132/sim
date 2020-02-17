@@ -1,15 +1,15 @@
 namespace Simulation {
   // TODO: Maybe abstract the sensor result to allow for different types of sensing results
-  public struct SensorResult {
+  internal struct SensorResult {
     public Blob[] blobs;
     public FoodSite[] food; 
   }
 
-  public interface IBlobSensor {
+  internal interface IBlobSensor {
     SensorResult sense(Blob blob, Board board);
   }
 
-  public class ProximitySensor : IBlobSensor {
+  internal class ProximitySensor : IBlobSensor {
     private double sensingRadius;
     public ProximitySensor(double sensingRadius) {
       this.sensingRadius = sensingRadius; 

@@ -1,7 +1,7 @@
 using System;
 
 namespace Simulation {
-  public class RadialPosition {
+  internal class RadialPosition {
     public double theta;
     public double radius;
 

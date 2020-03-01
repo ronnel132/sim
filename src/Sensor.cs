@@ -17,8 +17,8 @@ namespace Simulation {
 
     public SensorResult sense(Blob blob, Board board) {
       SensorResult sensorResult;
-      sensorResult.blobs = board.FindBlobsNear(blob.position, sensingRadius);
-      sensorResult.food = board.FindFoodSiteNear(blob.position, sensingRadius);
+      sensorResult.blobs = board.FindBlobsNear(blob.GetPosition(), sensingRadius);
+      sensorResult.food = board.FindFoodSiteNear(blob.GetPosition(), sensingRadius);
       return sensorResult;
     }
   }

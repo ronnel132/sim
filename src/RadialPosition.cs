@@ -12,7 +12,7 @@ namespace Simulation {
 
     public RadialPosition(double radius, double theta) {
       this.radius = radius;
-      this.theta = theta;
+      this.theta = theta % (2 * Math.PI);
     }
 
     public double Distance(RadialPosition rp) {

@@ -85,8 +85,8 @@ namespace Simulation {
           if (this.blobs.Count == 1) {
             this.blobs[0].SendHome(Satiety.Full);
           } else if (this.blobs.Count == 2) {
-            Boolean blob1Greedy = this.blobs[0].props.isGreedy;
-            Boolean blob2Greedy = this.blobs[2].props.isGreedy;
+            Boolean blob1Greedy = this.blobs[0].GetBlobProps().isGreedy;
+            Boolean blob2Greedy = this.blobs[2].GetBlobProps().isGreedy;
             // TODO: Abstract this algorithm into a strategy to keep implementation away from Mediator
             if (!blob1Greedy && !blob2Greedy) {
               // They share

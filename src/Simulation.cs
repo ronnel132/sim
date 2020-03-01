@@ -46,7 +46,7 @@ namespace Simulation {
       ensureSimulationActive();
       List<Blob> blobs = new List<Blob>();
       foreach(Blob b in this.blobs) {
-        RadialPosition b_pos = b.position;
+        RadialPosition b_pos = b.GetPosition();
         double dist = b_pos.Distance(pos);
         if (dist <= radius) {
           blobs.Add(b);
@@ -80,7 +80,21 @@ namespace Simulation {
     }
 
     private void PlaceBlobsUniformly() {
+      Utils.Shuffle<Blob>(this.blobs);
+      int blobCount = this.blobs.Count;
+      double spacing = (2 * Math.PI) / blobCount;
+      for (int i = 1; i <= blobCount; i++) {
+        this.blobs[i].SetPosition(new RadialPosition(1, spacing * i));
+      }
+    }
 
+    private void PlaceFoodRandomly(int numFood) {
+      Random rng = new Random();
+      for (int i = 0; i < numFood; i++) {
+        FoodSite food = new FoodSite();
+        food.SetPosition(new RadialPosition(rng.NextDouble(), 2 * Math.PI * rng.NextDouble()));
+        this.food.Add(food);
+      }
     }
 
     public void Run(int epochs) {
@@ -110,15 +124,31 @@ namespace Simulation {
         this.blobs.Add(new Blob(blobProps));
       }
 
-      this.PlaceBlobsUniformly();
       for (int i = 0; i < epochs; i++) {
         this.simulationActive = true;
         // Rehome blobs uniformly across the circle
+        this.PlaceBlobsUniformly();
         // Create food and distribute across board
-        // Create and randomly distribute food across the circle
-        // ProcessNext() until all blobs are eaten and they return home
+        this.PlaceFoodRandomly(this.simulationProps.numFood);
+        // ProcessNext() until all food is eaten and all blobs return home
+        while (this.blobs.Exists((blob) => !blob.IsHome())) {
+          this.ProcesIterationStep();
+        }
         this.simulationActive = false;
         // Add and remove blobs based on outcomes
+        List<Blob> newBlobs = new List<Blob>();
+        foreach (Blob b in this.blobs) {
+          if (b.GetSatiety() == Satiety.None) {
+            // Dead
+          } else if (b.GetSatiety() == Satiety.Half) {
+            newBlobs.Add(new Blob(b));
+            // Lives
+          } else if (b.GetSatiety() == Satiety.Full) {
+            // Reproduce
+            newBlobs.Add(new Blob(b));
+            newBlobs.Add(new Blob(b));
+          }
+        }
       }
     }
   }

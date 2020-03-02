@@ -4,7 +4,6 @@ using System.Collections.Generic;
 namespace Simulation {
   internal struct BlobProps {
     public bool isGreedy;
-    public RadialPosition home; 
     public IBlobSensor sensor;
     public double step;
   }
@@ -21,6 +20,8 @@ namespace Simulation {
   Searches for food in a random walk. Goes to the first food that's available, even if another blob is there.
    */
   internal class SearchingState : BlobState {
+    private static Random rng = new Random();
+
     private FoodSite selectedFood = null;
 
     public SearchingState(Blob b) : base(b) { }
@@ -34,8 +35,8 @@ namespace Simulation {
       }
     }
 
-    private void TrySelectFood(Board board, FoodSite[] sensedFoodSites) {
-      if (this.selectedFood != null) {
+    private void TrySelectFood(Board board, List<FoodSite> sensedFoodSites) {
+      if (this.selectedFood != null || sensedFoodSites.Count == 0) {
         return;
       }
       // Make a random selection among available foods
@@ -46,20 +47,16 @@ namespace Simulation {
         }
       }
       if (available.Count > 0) {
-        Random rand = new Random();
-        this.selectedFood = available[rand.Next(0, available.Count)];
+        this.selectedFood = available[rng.Next(0, available.Count)];
       }
     }
 
     public override void ProcessNext(Board board) {
       SensorResult senses = board.AcceptSensor(this.blob, blob.GetBlobProps().sensor);
-      Blob[] sensedBlobs = senses.blobs;
-      FoodSite[] sensedFoodSites = senses.food;
+      List<Blob> sensedBlobs = senses.blobs;
+      List<FoodSite> sensedFoodSites = senses.food;
 
-      if (this.selectedFood == null) {
-        return;
-      }
-      if (!board.FoodSiteAvailable(this.selectedFood)) {
+      if (this.selectedFood != null && !board.FoodSiteAvailable(this.selectedFood)) {
         this.selectedFood = null;
       }
 
@@ -98,17 +95,15 @@ namespace Simulation {
   }
 
   internal class HomewardState : BlobState {
-    public HomewardState(Blob b, Satiety satiety) : base(b) {
-      this.blob.SetSatiety(satiety);
-    }
+    public HomewardState(Blob b) : base(b) { }
 
     public override void ProcessNext(Board board) {
-      double stepSize = blob.GetBlobProps().step;
-      if (blob.GetPosition().Distance(blob.GetBlobProps().home) > stepSize) {
-        blob.GetPosition().StepTo(blob.GetBlobProps().home, blob.GetBlobProps().step);
+      double stepSize = this.blob.GetBlobProps().step;
+      if (this.blob.GetPosition().Distance(this.blob.GetHome()) > stepSize) {
+        this.blob.GetPosition().StepTo(this.blob.GetHome(), this.blob.GetBlobProps().step);
       } else {
-        blob.SetPosition(blob.GetBlobProps().home);
-        blob.SetBlobState(new HomeState(this.blob));
+        this.blob.SetPosition(this.blob.GetHome());
+        this.blob.SetBlobState(new HomeState(this.blob));
       }
     }
   }
@@ -126,12 +121,14 @@ namespace Simulation {
     private RadialPosition position;
     private BlobState state;
     private Satiety satiety;
+    private RadialPosition home;
 
     public Blob(BlobProps props) {
       id = Guid.NewGuid();
       state = new SearchingState(this);
       this.props = props;
-      this.position = this.props.home;
+      this.position = new RadialPosition();
+      this.home = new RadialPosition();
       this.satiety = Satiety.None;
     }
 
@@ -139,7 +136,8 @@ namespace Simulation {
       id = Guid.NewGuid();
       state = new SearchingState(this);
       this.props = existingBlob.GetBlobProps();
-      this.position = this.props.home;
+      this.position = new RadialPosition(existingBlob.GetPosition());
+      this.home = new RadialPosition(existingBlob.GetHome());
       this.satiety = Satiety.None;
     }
 
@@ -148,7 +146,7 @@ namespace Simulation {
     }
 
     public void SetPosition(RadialPosition rp) {
-      this.position = rp;
+      this.position = new RadialPosition(rp);
     }
 
     public BlobProps GetBlobProps() {
@@ -164,7 +162,23 @@ namespace Simulation {
     }
 
     public void SetSatiety(Satiety satiety) {
+      // TODO: Fix this
+      Dictionary<Satiety, int> ordering = new Dictionary<Satiety, int>();
+      ordering.Add(Satiety.None, 0);
+      ordering.Add(Satiety.Half, 1);
+      ordering.Add(Satiety.Full, 2);
+      if (ordering[satiety] < ordering[this.satiety]) {
+        return;
+      }
       this.satiety = satiety;
+    }
+
+    public void SetHome(RadialPosition rp) {
+      this.home = new RadialPosition(rp);
+    }
+
+    public RadialPosition GetHome() {
+      return this.home;
     }
 
     public Guid GetId() {
@@ -175,8 +189,11 @@ namespace Simulation {
       this.state.ProcessNext(board);
     }
 
-    public void SendHome(Satiety satiety = Satiety.None) {
-      this.SetBlobState(new HomewardState(this, satiety));
+    public void SendHome() {
+      if (this.IsHome()) {
+        throw new InvalidOperationException("Sending blob home that is already home");
+      }
+      this.SetBlobState(new HomewardState(this));
     }
 
     public override int GetHashCode() {
@@ -185,6 +202,10 @@ namespace Simulation {
 
     public Boolean IsHome() {
       return this.state.GetType() == typeof(HomeState);
+    }
+
+    public Boolean IsHomeward() {
+      return this.state.GetType() == typeof(HomewardState);
     }
 
     public override Boolean Equals(object obj) {

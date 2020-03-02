@@ -1,8 +1,10 @@
+using System.Collections.Generic;
+
 namespace Simulation {
   // TODO: Maybe abstract the sensor result to allow for different types of sensing results
   internal struct SensorResult {
-    public Blob[] blobs;
-    public FoodSite[] food; 
+    public List<Blob> blobs;
+    public List<FoodSite> food; 
   }
 
   internal interface IBlobSensor {
@@ -18,6 +20,8 @@ namespace Simulation {
     public SensorResult sense(Blob blob, Board board) {
       SensorResult sensorResult;
       sensorResult.blobs = board.FindBlobsNear(blob.GetPosition(), sensingRadius);
+      // remove self
+      sensorResult.blobs.RemoveAll((b) => b == blob);
       sensorResult.food = board.FindFoodSiteNear(blob.GetPosition(), sensingRadius);
       return sensorResult;
     }

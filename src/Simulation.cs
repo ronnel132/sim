@@ -16,6 +16,7 @@ namespace Simulation {
     private FoodSiteMediatorStore mediatorStore;
     private Boolean simulationActive;
     private SimulationProps simulationProps;
+    private static Random rng = new Random(); 
     public Board(SimulationProps simProps) {
       this.simulationActive = false;
       this.simulationProps = simProps;
@@ -42,7 +43,7 @@ namespace Simulation {
       return this.mediatorStore.FoodSiteAvailable(foodSite);
     }
 
-    internal Blob[] FindBlobsNear(RadialPosition pos, double radius) {
+    internal List<Blob> FindBlobsNear(RadialPosition pos, double radius) {
       ensureSimulationActive();
       List<Blob> blobs = new List<Blob>();
       foreach(Blob b in this.blobs) {
@@ -52,10 +53,10 @@ namespace Simulation {
           blobs.Add(b);
         }
       }
-      return blobs.ToArray();
+      return blobs;
     }
 
-    internal FoodSite[] FindFoodSiteNear(RadialPosition pos, double radius) {
+    internal List<FoodSite> FindFoodSiteNear(RadialPosition pos, double radius) {
       ensureSimulationActive();
       List<FoodSite> food = new List<FoodSite>();
       foreach(FoodSite f in this.food) {
@@ -65,7 +66,7 @@ namespace Simulation {
           food.Add(f);
         }
       }
-      return food.ToArray();
+      return food;
     }
 
     private void ProcesIterationStep() {
@@ -77,19 +78,27 @@ namespace Simulation {
       }
       this.mediatorStore.ProcessNext();
       this.food.RemoveAll(fs => fs.IsEaten());
+      if (this.food.Count == 0) {
+        foreach (Blob b in this.blobs) {
+          if (!b.IsHome() && !b.IsHomeward()) {
+            b.SendHome();
+          }
+        }
+      }
     }
 
     private void PlaceBlobsUniformly() {
       Utils.Shuffle<Blob>(this.blobs);
       int blobCount = this.blobs.Count;
       double spacing = (2 * Math.PI) / blobCount;
-      for (int i = 1; i <= blobCount; i++) {
-        this.blobs[i].SetPosition(new RadialPosition(1, spacing * i));
+      for (int i = 0; i < blobCount; i++) {
+        RadialPosition home = new RadialPosition(1, spacing * (i + 1));
+        this.blobs[i].SetPosition(home);
+        this.blobs[i].SetHome(home);
       }
     }
 
     private void PlaceFoodRandomly(int numFood) {
-      Random rng = new Random();
       for (int i = 0; i < numFood; i++) {
         FoodSite food = new FoodSite();
         food.SetPosition(new RadialPosition(rng.NextDouble(), 2 * Math.PI * rng.NextDouble()));
@@ -125,6 +134,10 @@ namespace Simulation {
       }
 
       for (int i = 0; i < epochs; i++) {
+        int greedyCount = this.blobs.FindAll((b) => b.GetBlobProps().isGreedy).Count;
+        int notGreedyCount = this.blobs.FindAll((b) => !b.GetBlobProps().isGreedy).Count;
+        Console.WriteLine(String.Format("Epoch: {0}, GreedyCount: {1}, NotGreedyCount: {2}", i, greedyCount, notGreedyCount));
+
         this.simulationActive = true;
         // Rehome blobs uniformly across the circle
         this.PlaceBlobsUniformly();
@@ -149,6 +162,7 @@ namespace Simulation {
             newBlobs.Add(new Blob(b));
           }
         }
+        this.blobs = newBlobs;
       }
     }
   }

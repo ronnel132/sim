@@ -83,32 +83,41 @@ namespace Simulation {
 
         if (this.countTime >= Constants.FOOD_LOCKUP_PERIOD) {
           if (this.blobs.Count == 1) {
-            this.blobs[0].SendHome(Satiety.Full);
+            this.blobs[0].SetSatiety(Satiety.Full);
+            this.blobs[0].SendHome();
           } else if (this.blobs.Count == 2) {
             Boolean blob1Greedy = this.blobs[0].GetBlobProps().isGreedy;
-            Boolean blob2Greedy = this.blobs[2].GetBlobProps().isGreedy;
+            Boolean blob2Greedy = this.blobs[1].GetBlobProps().isGreedy;
             // TODO: Abstract this algorithm into a strategy to keep implementation away from Mediator
             if (!blob1Greedy && !blob2Greedy) {
               // They share
-              this.blobs[0].SendHome(Satiety.Half);
-              this.blobs[1].SendHome(Satiety.Half);
+              this.blobs[0].SetSatiety(Satiety.Half);
+              this.blobs[0].SendHome();
+              this.blobs[1].SetSatiety(Satiety.Half);
+              this.blobs[1].SendHome();
             } else if (blob1Greedy && !blob2Greedy) {
-              this.blobs[0].SendHome(Satiety.Full);
-              this.blobs[1].SendHome(Satiety.None);
+              this.blobs[0].SetSatiety(Satiety.Full);
+              this.blobs[0].SendHome();
+              this.blobs[1].SetSatiety(Satiety.None);
+              this.blobs[1].SendHome();
             } else if (!blob1Greedy && blob2Greedy) {
-              this.blobs[0].SendHome(Satiety.None);
-              this.blobs[1].SendHome(Satiety.Full);
+              this.blobs[0].SetSatiety(Satiety.None);
+              this.blobs[0].SendHome();
+              this.blobs[1].SetSatiety(Satiety.Full);
+              this.blobs[1].SendHome();
             } else {
               // blob1Greedy && blob2Greedy
-              this.blobs[0].SendHome(Satiety.None);
-              this.blobs[1].SendHome(Satiety.None);
+              this.blobs[0].SetSatiety(Satiety.None);
+              this.blobs[0].SendHome();
+              this.blobs[1].SetSatiety(Satiety.None);
+              this.blobs[1].SendHome();
             }
           } else {
             throw new InvalidOperationException(String.Format("Blob count exceeds {0}. Blob count: {1}",
               Constants.MAX_PER_FOODSITE, this.blobs.Count));
           }
+          this.foodSite.SetState(FoodState.Eaten);
         }
-        this.foodSite.SetState(FoodState.Eaten);
       }
     }
 
@@ -121,14 +130,18 @@ namespace Simulation {
 
     public Boolean FoodSiteAvailable(FoodSite foodSite) {
       if (!this.mediatorMap.ContainsKey(foodSite)) {
-        return false;
+        return true;
       }
       return this.mediatorMap[foodSite].FoodSiteAvailable();
     }
 
     public void ProcessNext() {
       foreach (FoodSite foodSite in this.mediatorMap.Keys) {
-        this.mediatorMap[foodSite].ProcessNext();
+        if (foodSite.IsEaten()) {
+          this.mediatorMap.Remove(foodSite);
+        } else {
+          this.mediatorMap[foodSite].ProcessNext();
+        }
       }
     }
   }

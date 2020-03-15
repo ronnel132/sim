@@ -1,10 +1,12 @@
 using System;
+using System.Threading; 
 
 namespace Simulation {
   internal class RadialPosition {
     public double theta;
     public double radius;
     private static Random rng = new Random();
+    private static Mutex mutex = new Mutex();
 
     public RadialPosition() {
       this.theta = 0;
@@ -61,7 +63,9 @@ namespace Simulation {
     }
 
     public void RandomStep(double stepSize) {
+      mutex.WaitOne();
       double theta = rng.NextDouble() * 2 * Math.PI;
+      mutex.ReleaseMutex();
 
       double delta_x = stepSize * Math.Cos(theta);
       double delta_y = stepSize * Math.Sin(theta);

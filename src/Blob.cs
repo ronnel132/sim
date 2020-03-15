@@ -20,8 +20,6 @@ namespace Simulation {
   Searches for food in a random walk. Goes to the first food that's available, even if another blob is there.
    */
   internal class SearchingState : BlobState {
-    private static Random rng = new Random();
-
     public SearchingState(Blob b) : base(b) { }
 
     private List<FoodSite> GetAvailableFood(Board board, List<FoodSite> sensedFoodSites) {

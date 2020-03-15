@@ -82,7 +82,7 @@ namespace Simulation {
       }
       try {
         await Task.WhenAll(tasks);
-      } catch (AggregateException ae) {
+      } catch (Exception ae) {
         Console.WriteLine(String.Format("Caught Exception in processing blob iterations: {0}", ae));
       }
       this.mediatorStore.ProcessNext();

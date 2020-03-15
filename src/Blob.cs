@@ -22,23 +22,9 @@ namespace Simulation {
   internal class SearchingState : BlobState {
     private static Random rng = new Random();
 
-    private FoodSite selectedFood = null;
-
     public SearchingState(Blob b) : base(b) { }
 
-    private void ValidateExistingSelection(Blob blob, Board board) {
-      if (this.selectedFood == null) {
-        return;
-      }
-      if (!board.FoodSiteAvailable(this.selectedFood)) {
-        this.selectedFood = null;
-      }
-    }
-
-    private void TrySelectFood(Board board, List<FoodSite> sensedFoodSites) {
-      if (this.selectedFood != null || sensedFoodSites.Count == 0) {
-        return;
-      }
+    private List<FoodSite> GetAvailableFood(Board board, List<FoodSite> sensedFoodSites) {
       // Make a random selection among available foods
       List<FoodSite> available = new List<FoodSite>();
       foreach (FoodSite f in sensedFoodSites) {
@@ -46,9 +32,17 @@ namespace Simulation {
           available.Add(f); 
         }
       }
-      if (available.Count > 0) {
-        this.selectedFood = available[rng.Next(0, available.Count)];
+      return available;
+    }
+
+    private List<FoodSite> GetReachableFood(List<FoodSite> available, double stepSize) {
+      List<FoodSite> reachable = new List<FoodSite>();
+      foreach (FoodSite fs in available) {
+        if (blob.GetPosition().Distance(fs.GetPosition()) < stepSize) {
+          reachable.Add(fs);
+        }
       }
+      return reachable;
     }
 
     public override void ProcessNext(Board board) {
@@ -56,23 +50,28 @@ namespace Simulation {
       List<Blob> sensedBlobs = senses.blobs;
       List<FoodSite> sensedFoodSites = senses.food;
 
-      if (this.selectedFood != null && !board.FoodSiteAvailable(this.selectedFood)) {
-        this.selectedFood = null;
-      }
-
-      TrySelectFood(board, sensedFoodSites);
-
       double stepSize = blob.GetBlobProps().step;
-      if (this.selectedFood == null) {
+
+      List<FoodSite> available = GetAvailableFood(board, sensedFoodSites);
+      List<FoodSite> reachable = GetReachableFood(available, stepSize);
+
+      if (available.Count == 0) {
         // Random walk
         // TODO: Explore more intelligent search strategies
         blob.GetPosition().RandomStep(stepSize);
-      } else if (blob.GetPosition().Distance(this.selectedFood.GetPosition()) <= stepSize) {
-        board.VisitFoodSite(this.selectedFood, blob);
-        blob.SetBlobState(new AtFoodSiteState(this.blob, this.selectedFood));
-        blob.SetPosition(this.selectedFood.GetPosition());
+      } else if (reachable.Count > 0) {
+        // Try until success
+        foreach (FoodSite fs in reachable) {
+          if (board.TryVisitFoodSite(fs, this.blob)) {
+            blob.SetBlobState(new AtFoodSiteState(this.blob, fs));
+            blob.SetPosition(fs.GetPosition());
+            break;
+          }
+        }
       } else {
-        blob.GetPosition().StepTo(this.selectedFood.GetPosition(), stepSize);
+        // Just go to the first one
+        // TODO: Maybe make this choice random
+        blob.GetPosition().StepTo(available[0].GetPosition(), stepSize);
       }
     }
   }
@@ -186,6 +185,9 @@ namespace Simulation {
     }
 
     public void ProcessNext(Board board) {
+      if (this.state == null) {
+        throw new InvalidOperationException("State is not initialized");
+      }
       this.state.ProcessNext(board);
     }
 

@@ -1,5 +1,6 @@
 using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Simulation {
   public struct SimulationProps {
@@ -33,9 +34,9 @@ namespace Simulation {
       return sensor.sense(blob, this);
     }
 
-    internal void VisitFoodSite(FoodSite foodSite, Blob b) {
+    internal Boolean TryVisitFoodSite(FoodSite foodSite, Blob b) {
       ensureSimulationActive();
-      this.mediatorStore.VisitFoodSite(foodSite, b);
+      return this.mediatorStore.TryVisitFoodSite(foodSite, b);
     }
 
     internal Boolean FoodSiteAvailable(FoodSite foodSite) {
@@ -69,12 +70,20 @@ namespace Simulation {
       return food;
     }
 
-    private void ProcesIterationStep() {
+    private async Task ProcesIterationStep() {
       ensureSimulationActive();
-      // TODO: would be interesting to explore running blob processing on multiple cpu threads
-      // TODO: is ordering a concern? i.e. ordering of blob processing and mediator processing
+      List<Task> tasks = new List<Task>();
       foreach (Blob b in this.blobs) {
-        b.ProcessNext(this);
+        tasks.Add(Task.Run(() => {
+          // TODO: We must initialize a static view of the board w/ all food and blob positions to pass to ProcessNext
+          // here, otherwise the blobs won't act in a synchronized manner
+          b.ProcessNext(this);
+        }));
+      }
+      try {
+        await Task.WhenAll(tasks);
+      } catch (AggregateException ae) {
+        Console.WriteLine(String.Format("Caught Exception in processing blob iterations: {0}", ae));
       }
       this.mediatorStore.ProcessNext();
       this.food.RemoveAll(fs => fs.IsEaten());
@@ -106,7 +115,7 @@ namespace Simulation {
       }
     }
 
-    public void Run(int epochs) {
+    public async Task Run(int epochs) {
       this.mediatorStore = new FoodSiteMediatorStore();
       this.blobs = new List<Blob>();
       this.food = new List<FoodSite>();
@@ -145,7 +154,7 @@ namespace Simulation {
         this.PlaceFoodRandomly(this.simulationProps.numFood);
         // ProcessNext() until all food is eaten and all blobs return home
         while (this.blobs.Exists((blob) => !blob.IsHome())) {
-          this.ProcesIterationStep();
+          await this.ProcesIterationStep();
         }
         this.simulationActive = false;
         // Add and remove blobs based on outcomes

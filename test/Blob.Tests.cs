@@ -12,7 +12,6 @@ namespace Simulation.Tests
     public void Initialize() {
       this.blobProps = new BlobProps();
       this.blobProps.isGreedy = true;
-      this.blobProps.home = new RadialPosition(0, 0);
       this.blobProps.sensor = new ProximitySensor(0.03);
       this.blobProps.step = 0.01;
     }

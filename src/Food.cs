@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic; 
+using System.Collections.Concurrent;
+using System.Threading; 
 
 namespace Simulation {
   internal enum FoodState {
@@ -50,32 +52,42 @@ namespace Simulation {
   }
 
   internal class FoodSiteMediatorStore {
-    private Dictionary<FoodSite, FoodSiteMediator> mediatorMap;
+    private ConcurrentDictionary<FoodSite, FoodSiteMediator> mediatorMap;
 
     public FoodSiteMediatorStore() {
-      this.mediatorMap = new Dictionary<FoodSite, FoodSiteMediator>();
+      this.mediatorMap = new ConcurrentDictionary<FoodSite, FoodSiteMediator>();
     }
 
     private class FoodSiteMediator {
       private int countTime = 0;
       private FoodSite foodSite;
       private List<Blob> blobs;
+      private Mutex mutex = new Mutex();
       
       public FoodSiteMediator(FoodSite fs) {
         this.foodSite = fs;
         this.blobs = new List<Blob>();
       }
 
-      public void Visit(Blob b) {
+      public Boolean TryVisit(Blob b) {
+        this.mutex.WaitOne();
         if (this.blobs.Contains(b)) {
           throw new InvalidOperationException(String.Format("Attempting to add blob id {0} to mediator", b.GetId()));
         }
 
+        if (this.blobs.Count + 1 > Constants.MAX_PER_FOODSITE) {
+          this.mutex.ReleaseMutex();
+          return false;
+        }
+
         this.blobs.Add(b);
+        this.mutex.ReleaseMutex();
+        return true;
       }
 
       public Boolean FoodSiteAvailable() {
-        return this.blobs.Count <= 1 && !this.foodSite.IsEaten();
+        Boolean available = this.blobs.Count <= 1 && !this.foodSite.IsEaten();
+        return available;
       }
 
       public void ProcessNext() {
@@ -121,11 +133,11 @@ namespace Simulation {
       }
     }
 
-    public void VisitFoodSite(FoodSite foodSite, Blob b) {
+    public Boolean TryVisitFoodSite(FoodSite foodSite, Blob b) {
       if (!this.mediatorMap.ContainsKey(foodSite)) {
-        this.mediatorMap.Add(foodSite, new FoodSiteMediator(foodSite));
+        this.mediatorMap.TryAdd(foodSite, new FoodSiteMediator(foodSite));
       }
-      this.mediatorMap[foodSite].Visit(b);
+      return this.mediatorMap[foodSite].TryVisit(b);
     }
 
     public Boolean FoodSiteAvailable(FoodSite foodSite) {
@@ -138,7 +150,7 @@ namespace Simulation {
     public void ProcessNext() {
       foreach (FoodSite foodSite in this.mediatorMap.Keys) {
         if (foodSite.IsEaten()) {
-          this.mediatorMap.Remove(foodSite);
+          this.mediatorMap.TryRemove(foodSite, out _);
         } else {
           this.mediatorMap[foodSite].ProcessNext();
         }
